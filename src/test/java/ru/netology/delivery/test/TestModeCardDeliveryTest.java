@@ -1,77 +1,75 @@
 package ru.netology.delivery.test;
 
-import com.codeborne.selenide.Configuration;
-import org.junit.jupiter.api.BeforeAll;
-import ru.netology.delivery.data.RegistrationByCardInfo;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static com.codeborne.selenide.Condition.visible;
-import static com.codeborne.selenide.Selectors.byText;
-import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.open;
-import static ru.netology.delivery.data.DataGenerator.fakeUser;
-import static ru.netology.delivery.data.DataGenerator.regNewUser;
-import static java.time.Duration.ofSeconds;
+import static com.codeborne.selenide.Condition.exactText;
+import static com.codeborne.selenide.Condition.text;
+
+import static ru.netology.delivery.data.DataGenerator.Registration.getRegisteredUser;
+import static ru.netology.delivery.data.DataGenerator.Registration.getUser;
+import static ru.netology.delivery.data.DataGenerator.getRandomLogin;
+import static ru.netology.delivery.data.DataGenerator.getRandomPassword;
+
+import static com.codeborne.selenide.Selenide.$;
 
 public class TestModeCardDeliveryTest {
-    @BeforeAll
-    static void setUp() {
-        Configuration.headless = true;
+    @BeforeEach
+    void setup() {
+        open("http://localhost:9999");
     }
 
     @Test
-    void shouldTestWithActiveUser() {
-        RegistrationByCardInfo info = regNewUser("active");
-        open("http://localhost:9999/");
-        $("[data-test-id='login'] input").setValue(info.getLogin());
-        $("[data-test-id='password'] input").setValue(info.getPassword());
-        $("[data-test-id='action-login'] .button__content").click();
-        $(byText("Личный кабинет")).shouldBe(visible, ofSeconds(15));
+    @DisplayName("Should successfully login with active registered user")
+    void shouldSuccessfulLoginIfRegisteredActiveUser() {
+        var registeredUser = getRegisteredUser("active");
+        $("[data-test-id=login] input").setValue(registeredUser.getLogin());
+        $("[data-test-id=password] input").setValue(registeredUser.getPassword());
+        $(".button").click();
+        $("[id=root]").should(text("Личный кабинет"));
     }
 
     @Test
-    void shouldTestWithBlockedUser() {
-        RegistrationByCardInfo info = regNewUser("blocked");
-        open("http://localhost:9999/");
-        $("[data-test-id='login'] input").setValue(info.getLogin());
-        $("[data-test-id='password'] input").setValue(info.getPassword());
-        $("[data-test-id='action-login'] .button__content").click();
-        $(byText("Пользователь заблокирован")).shouldBe(visible, ofSeconds(15));
+    @DisplayName("Should get error message if login with not registered user")
+    void shouldGetErrorIfNotRegisteredUser() {
+        var notRegisteredUser = getUser("active");
+        $("[data-test-id=login] input").setValue(notRegisteredUser.getLogin());
+        $("[data-test-id=password] input").setValue(notRegisteredUser.getPassword());
+        $("[data-test-id=action-login]").click();
+        $(".notification__content").should(exactText("Ошибка! Неверно указан логин или пароль"));
     }
 
     @Test
-    void shouldTestWithInvalidPassword() {
-        RegistrationByCardInfo info = regNewUser("active");
-        open("http://localhost:9999/");
-        $("[data-test-id='login'] input").setValue(info.getLogin());
-        $("[data-test-id='password'] input").setValue(fakeUser().getPassword());
-        $("[data-test-id='action-login'] .button__content").click();
-        $(byText("Ошибка")).shouldBe(visible, ofSeconds(15));
+    @DisplayName("Should error login not registered user")
+    void shouldGetErrorIfBlockedUser() {
+        var blockedUser = getRegisteredUser("blocked");
+        $("[data-test-id=login] input").setValue(blockedUser.getLogin());
+        $("[data-test-id=password] input").setValue(blockedUser.getPassword());
+        $("[data-test-id=action-login]").click();
+        $(".notification__content").should(exactText("Ошибка! Пользователь заблокирован"));
     }
 
     @Test
-    void shouldTestWithInvalidLogin() {
-        RegistrationByCardInfo info = regNewUser("active");
-        open("http://localhost:9999/");
-        $("[data-test-id='login'] input").setValue(fakeUser().getLogin());
-        $("[data-test-id='password'] input").setValue(info.getPassword());
-        $("[data-test-id='action-login'] .button__content").click();
-        $(byText("Ошибка")).shouldBe(visible, ofSeconds(15));
+    @DisplayName("Should error login not registered user")
+    void shouldGetErrorIfWrongLogin() {
+        var registeredUser = getRegisteredUser("active");
+        var wrongLogin = getRandomLogin();
+        $("[data-test-id=login] input").setValue(wrongLogin);
+        $("[data-test-id=password] input").setValue(registeredUser.getPassword());
+        $("[data-test-id=action-login]").click();
+        $(".notification__content").should(exactText("Ошибка! Неверно указан логин или пароль"));
     }
 
     @Test
-    void shouldTestWithInvalidLoginAndPassword() {
-        open("http://localhost:9999/");
-        $("[data-test-id='login'] input").setValue(fakeUser().getLogin());
-        $("[data-test-id='password'] input").setValue(fakeUser().getPassword());
-        $("[data-test-id='action-login'] .button__content").click();
-        $(byText("Ошибка")).shouldBe(visible, ofSeconds(15));
-    }
-
-    @Test
-    void shouldTestWithEmptyForms() {
-        open("http://localhost:9999/");
-        $("[data-test-id='action-login'] .button__content").click();
-        $(byText("Поле обязательно для заполнения")).shouldBe(visible, ofSeconds(15));
+    @DisplayName("Should get error message if login with wrong password")
+    void shouldGetErrorIfWrongPassword() {
+        var registeredUser = getRegisteredUser("active");
+        var wrongPassword = getRandomPassword();
+        $("[data-test-id=login] input").setValue(registeredUser.getLogin());
+        $("[data-test-id=password] input").setValue(wrongPassword);
+        $("[data-test-id=action-login]").click();
+        $(".notification__content").should(exactText("Ошибка! Неверно указан логин или пароль"));
     }
 }
